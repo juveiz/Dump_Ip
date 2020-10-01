@@ -150,9 +150,11 @@ Entrada: lista de dataframes, ips a utilizar y puertos a utilizar
 Salida: lista de matrices de one hot
 
 """
-def to_one_hot_list(lista,max_ips,max_ports):
+def to_one_hot_list(lista,max_ips,max_ports,verbose):
     res = []
     for item in lista:
+        if verbose:
+            print('Codificando: ' + item.values[0,0])
         res.append(to_one_hot(item,max_ips,max_ports))
     return res
 
@@ -215,17 +217,17 @@ def main():
     # Obtenemos las ips y puertos
     max_ips, max_ports = get_ips_ports(data)
     if args.verbose:
-        print('Ips y Puertos seleccionados\n')
+        print('Ips y Puertos seleccionados')
 
     # Transformamos los datos en codificacion one hot
-    one_hot_list = to_one_hot_list(data,max_ips,max_ports)
+    one_hot_list = to_one_hot_list(data,max_ips,max_ports,args.verbose)
     if args.verbose:
-        print('One hot creado para todos los dataframes\n')
+        print('One hot creado para todos los dataframes')
 
     # Por ultimo lo pasamos a pickle y lo guardamos en la misma carpeta de la ejecucion
     to_pickle(one_hot_list,max_ips,max_ports,'./Pickle')
     if args.verbose:
-        print('Datos guardados en pickle\n')
+        print('Datos guardados en pickle')
     return
 
 if __name__ == "__main__":
