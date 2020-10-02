@@ -13,7 +13,7 @@ El programa transforma los archivos .dump en matrices de codificación one hot, 
 Para realizar esto tenemos que ejecutar el programa. Tiene dos modos de ejecución principal:
 
 #### Método de archivos
-
+ 
 El primer método es introducir las rutas de los archivos una a una tras la flag -a, de la siguiente forma:
 
 ~~~

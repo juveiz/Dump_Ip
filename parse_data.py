@@ -4,6 +4,7 @@ import pickle
 import bz2
 import argparse
 import sys
+import multiprocessing
 
 """
 Funcion to_pandas
@@ -183,15 +184,26 @@ def to_pickle(lista,max_ips,max_ports,path):
     pickle.dump(max_ports,outfile)
     outfile.close()
 
+
+def multiprocessing_func(dataframe,max_ips,max_ports,path):
+    one_hot = to_one_hot(dataframe,max_ips,max_ports)
+    filename = path + str(dataframe.values[0,0]) + '.bz2'
+    outfile = bz2.BZ2File(filename, 'w')
+    pickle.dump(one_hot,outfile)
+    outfile.close()
+
 def main():
     # Parseo de argumentos
     parser = argparse.ArgumentParser()
     parser.add_argument("-a","--archivos", type=str, nargs='+',
                         help="lista de rutas de los archivos")
     parser.add_argument("-f","--fichero", type=str,
-                        help="ruta del fichero con la lista de archivos separados por salto de linea")  
+                        help="ruta del fichero con la lista de archivos separados por salto de linea")
+    parser.add_argument("-m","--multiprocessing", help="ejecuta el programa en múltiples procesadores",
+                        action="store_true")   
     parser.add_argument("-v","--verbose", help="imprime por pantalla como va funcionando el programa",
-                        action="store_true")                  
+                        action="store_true")   
+                   
     args = parser.parse_args()
     if args.archivos and args.fichero:
         print('Introduzca solo uno')
@@ -218,6 +230,30 @@ def main():
     max_ips, max_ports = get_ips_ports(data)
     if args.verbose:
         print('Ips y Puertos seleccionados')
+
+    # Si activamos el multiprocesamiento lo ejecutamos de esa forma
+    if args.multiprocessing:
+        processes = []
+        for item in data:
+            p = multiprocessing.Process(target=multiprocessing_func, args=(item,max_ips,max_ports,'./Pickle'))
+            processes.append(p)
+            p.start()
+        
+        for process in processes:
+            process.join()
+        
+        print('One hot y pickle creado para todos los dataframes')
+        filename = './Pickle_max_ips.bz2'
+        outfile = bz2.BZ2File(filename, 'w')
+        pickle.dump(max_ips,outfile)
+        outfile.close()
+
+        filename = './Pickle_max_ports.bz2'
+        outfile = bz2.BZ2File(filename, 'w')
+        pickle.dump(max_ports,outfile)
+        outfile.close()
+
+        return
 
     # Transformamos los datos en codificacion one hot
     one_hot_list = to_one_hot_list(data,max_ips,max_ports,args.verbose)
