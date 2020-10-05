@@ -160,6 +160,24 @@ def to_one_hot_list(lista,max_ips,max_ports,verbose):
     return res
 
 """
+Funcion to_one_hot_count
+
+Transforma un one_hot del creado anteriormente y cuenta el numero de unos por cada ip 
+
+Entrada: one hot, ips a utilizar 
+
+Salida: matriz de one hot
+
+"""
+def to_one_hot_count(one_hot,max_ips):
+    one_hot_count = np.zeros(shape=(len(max_ips) + 1,len(max_ips) + 2),dtype=int)
+    counts = np.count_nonzero(one_hot == 1,axis=0)[:len(max_ips) + 1]
+    for i in range(len(max_ips) + 1):
+        one_hot_count[i,i] = 1
+        one_hot_count[i,-1] = counts[i]
+    return one_hot_count
+
+"""
 Funcion to_pickle
 
 Transforma un lista de datos en archvios pickle en el path indicado
@@ -185,6 +203,14 @@ def to_pickle(lista,max_ips,max_ports,path):
     outfile.close()
 
 
+"""
+Funcion multiprocessing_func
+
+Ejecuta el programa principal en formato multiprocessing
+
+Entrada: dataframe, max_ips, max_ports, path donde se guardaran los pickles
+
+"""
 def multiprocessing_func(dataframe,max_ips,max_ports,path):
     one_hot = to_one_hot(dataframe,max_ips,max_ports)
     filename = path + str(dataframe.values[0,0]) + '.bz2'
