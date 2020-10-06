@@ -18,7 +18,11 @@ Salida: dataframe
 """
 def to_pandas(path):
     try:
-        dump_data = pd.read_csv(path,delimiter=',',dtype=str)
+        dump_data = pd.read_csv(path,delimiter=',',header=0,
+                                names=['start_time','start_time.1','start_time.2','protocol','route_address',
+                                    'source_address','destination_address','source_port','dest_port','input_interfaz_num',
+                                    'output_interfaz_num','input_packets','output_packages','input_bytes','output_bytes',
+                                    'flows','bits_per_second','packets_per_second','bits_per_packet'],dtype=str)
         dump_data = dump_data.drop(columns=['start_time.1','start_time.2','protocol',
                                         'route_address','input_interfaz_num','output_interfaz_num',
                                         'input_packets','output_packages','input_bytes','output_bytes','flows',
@@ -250,7 +254,7 @@ def main():
             data.append(to_pandas(item.strip('\n')))
         paths.close()
     if args.verbose:
-        print('Datos leidos\n')
+        print('Datos leidos')
 
     # Obtenemos las ips y puertos
     max_ips, max_ports = get_ips_ports(data)
