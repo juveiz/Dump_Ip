@@ -27,7 +27,6 @@ def to_pandas(path):
                                         'route_address','input_interfaz_num','output_interfaz_num',
                                         'input_packets','output_packages','input_bytes','output_bytes','flows',
                                         'bits_per_second','packets_per_second','bits_per_packet'])
-        dump_data = dump_data.rename(columns={'destination_address_': 'destination_address'})
     
     except:
         error = 'No se ha podido leer el fichero ' + path
