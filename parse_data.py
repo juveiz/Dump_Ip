@@ -108,40 +108,38 @@ def to_one_hot(dataframe, max_ips, max_ports):
     res = np.zeros(shape=(num_filas,num_columnas + 1),dtype=int)
     # Para cada fila seleccionamos los indices adecuados 
     # y ponemos un uno en los mismos
-    for i in range(num_filas):
-        fila = dataframe.iloc[i].values[1:].astype(str)
-        try:
-            indice_1 = np.where(max_ips == fila[0])[0][0]
-        except:
-            indice_1 = max_ips.shape[0]
-
-        try:
-            indice_2 = np.where(max_ports == fila[2])[0][0]
-        except:
-            indice_2 = max_ports.shape[0]
-        indice_2 = indice_2 + max_ips.shape[0] + 1
-
-        try:
-            indice_3 = np.where(max_ips == fila[1])[0][0]
-        except:
-            indice_3 = max_ips.shape[0]
-        indice_3 = indice_3 + max_ips.shape[0] + 1 + max_ports.shape[0] + 1
-
-        try:
-            indice_4 = np.where(max_ports == fila[3])[0][0]
-        except:
-            indice_4 = max_ports.shape[0]
-        indice_4 = indice_4 + max_ips.shape[0] + 1 + max_ports.shape[0] + 1 + max_ips.shape[0] + 1
-
-        res[i,np.array([indice_1,indice_2,indice_3,indice_4])] = 1
+    
+    data = dataframe.values[:,1:]
+    for i in range(max_ips.shape[0] - 1):
+        fila, columna = np.where(data == max_ips[i])
+        columna = columna*(max_ips.shape[0] + 1 + max_ports.shape[0] + 1) + i
+        res[fila,columna] = 1
+    
+    data = dataframe.values[:,3:]
+    for i in range(max_ports.shape[0] - 1):
+        fila, columna = np.where(data == max_ports[i])
+        columna = columna*(max_ips.shape[0] + 1 + max_ports.shape[0] + 1) + i + max_ips.shape[0] + 1
+        res[fila,columna] = 1
+    
+    res[np.where(~res[:,:max_ips.shape[0]].any(axis=1))[0],max_ips.shape[0]] = 1
+    
+    res[np.where(~res[:,max_ips.shape[0] + 1:max_ips.shape[0] + 1 + max_ports.shape[0]].any(axis=1))[0],
+        max_ips.shape[0] + max_ports.shape[0] + 1] = 1
+    
+    res[np.where(~res[:,max_ips.shape[0] + 1 + max_ports.shape[0] + 1:max_ips.shape[0] + 
+                         1 + max_ports.shape[0] + 1 + max_ips.shape[0]].any(axis=1))[0],
+                         max_ips.shape[0] + 1 + max_ports.shape[0] + 1 + max_ips.shape[0]] = 1
+    
+    res[np.where(~res[:,max_ips.shape[0] + 1 + max_ports.shape[0] + 1 + max_ips.shape[0] + 1:-2].any(axis=1))[0],
+                         -2] = 1
+    
+    fecha = dataframe.values[0,0]
+    fecha = fecha.replace('-','')
+    fecha = fecha.replace('T','')
+    fecha = fecha.replace(':','')
+    fecha = int(fecha)
+    res[:,-1] = fecha
         
-        fecha = dataframe.iloc[i].values[0]
-        fecha = fecha.replace('-','')
-        fecha = fecha.replace('T','')
-        fecha = fecha.replace(':','')
-        fecha = int(fecha)
-        res[i,-1] = fecha
-
     return res
 
 """
