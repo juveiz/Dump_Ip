@@ -35,4 +35,3 @@ python3 parse_data.py -f ./fichero.txt
 ~~~
 
 Adicionalmente, para ambos métodos se puede utilizar la flag -v para que se muestre por pantalla información de por donde va el programa.
-También se puede ejecutar en modo multiprocesador añadiendo la flag -m.

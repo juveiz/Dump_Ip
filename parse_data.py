@@ -3,8 +3,6 @@ import numpy as np
 import pickle
 import bz2
 import argparse
-import sys
-import multiprocessing
 
 """
 Funcion to_pandas
@@ -46,12 +44,32 @@ Salida: dos listas: una con las ips y otro con los puertos
 
 """
 def get_ips_ports(lista):
-    temp = pd.concat(lista,ignore_index=True)
-    # Obtenemos todas las ips de todos los datos
-    ips = np.append(temp['source_address'],temp['destination_address'])
-    # Obtenemos la cantidad de ips que hay en total
-    unique, counts = np.unique(ips,return_counts=True)
-    count_data = np.asarray((unique, counts)).T
+    dic_ip = {}
+    dic_ports = {}
+
+    for item in lista:
+        temp = to_pandas(item)
+        ips = np.append(temp['source_address'],temp['destination_address'])
+        unique, counts = np.unique(ips,return_counts=True)
+
+        for A,B in zip(unique,counts):
+            if A in dic_ip:
+                dic_ip[A] = dic_ip[A] + B
+            else:
+                dic_ip[A] = B
+
+        ports = np.append(temp['source_port'],temp['dest_port'])
+        unique, counts = np.unique(ports,return_counts=True)
+
+        for A,B in zip(unique,counts):
+            if int(float(A)) in dic_ports:
+                dic_ports[int(float(A))] = dic_ports[int(float(A))] + B
+            else:
+                dic_ports[int(float(A))] = B
+    
+
+    count_data = np.array(list(dic_ip.items()))
+
     # Ordenamos de mayor a menor
     count_order = np.sort(count_data[:,-1])
     count_order = np.unique(count_order)[::-1]
@@ -62,21 +80,9 @@ def get_ips_ports(lista):
         for j in index:
             ordered = np.append(ordered,count_data[j,:],axis=0)
     ordered.resize((int(ordered.shape[0]/2),2))
-    # Obtenemos las ips con mas valores
-    busqueda = ordered[np.where(ordered[:,1] > 20000 * len(lista))[0],0]
-    # Obtenemos los puertos que corresponden a estas ips y seleccionamos 
-    # los que mas aparecen de la misma forma
-    L = []
-    for item in busqueda:
-        L.append(temp.loc[temp.source_address == item])
-        L.append(temp.loc[temp.destination_address == item])
-    result = pd.concat(L)
-    result = result.drop_duplicates()
-    ports = np.append(result['source_port'],result['dest_port'])
-    uniquep, countsp = np.unique(ports,return_counts=True)
-    uniquep = uniquep.astype('float64')
-    uniquep = uniquep.astype('int64')
-    count_ports = np.asarray((uniquep, countsp)).T
+    
+
+    count_ports = np.array(list(dic_ports.items()))
     count_orderp = np.sort(count_ports[:,-1])
     count_orderp = np.unique(count_orderp)[::-1]
     orderedp = np.array([])
@@ -86,8 +92,8 @@ def get_ips_ports(lista):
             orderedp = np.append(orderedp,count_ports[j,:],axis=0)
     orderedp.resize((int(orderedp.shape[0]/2),2))
     orderedp = orderedp.astype('int64')
-    max_ips = ordered[np.where(ordered[:,1] > 20000 * len(lista))[0],0]
-    max_ports = orderedp[:np.where(orderedp[:,1] >= 1000 * len(lista))[0][-1],0]
+    max_ips = ordered[np.where(ordered[:,1].astype(int) > 20000 * len(lista))[0],0]
+    max_ports = orderedp[:np.where(orderedp[:,1] >= 20000 * len(lista))[0][-1],0]
     max_ports = max_ports.astype(str)
     return max_ips,max_ports
 
@@ -146,6 +152,7 @@ def to_one_hot(dataframe, max_ips, max_ports):
 Funcion to_one_hot_list
 
 Transforma una lista dataframe de pandas en una lista de codificacción one hot 
+y los guarda en pickle en la misma carpeta
 
 Entrada: lista de dataframes, ips a utilizar y puertos a utilizar
 
@@ -153,12 +160,17 @@ Salida: lista de matrices de one hot
 
 """
 def to_one_hot_list(lista,max_ips,max_ports,verbose):
-    res = []
     for item in lista:
+        temp = to_pandas(item)
         if verbose:
-            print('Codificando: ' + item.values[0,0])
-        res.append(to_one_hot(item,max_ips,max_ports))
-    return res
+            print('Codificando: ' + temp.values[0,0])
+        one_hot = to_one_hot(temp,max_ips,max_ports)
+        if verbose:
+            print('Codificado: ' + temp.values[0,0])
+        to_pickle([one_hot],max_ips,max_ports,'./Pickle')
+        if verbose:
+            print('Pickle creado: ' + temp.values[0,0])
+    return 
 
 """
 Funcion to_one_hot_count
@@ -203,31 +215,13 @@ def to_pickle(lista,max_ips,max_ports,path):
     pickle.dump(max_ports,outfile)
     outfile.close()
 
-
-"""
-Funcion multiprocessing_func
-
-Ejecuta el programa principal en formato multiprocessing
-
-Entrada: dataframe, max_ips, max_ports, path donde se guardaran los pickles
-
-"""
-def multiprocessing_func(dataframe,max_ips,max_ports,path):
-    one_hot = to_one_hot(dataframe,max_ips,max_ports)
-    filename = path + str(dataframe.values[0,0]) + '.bz2'
-    outfile = bz2.BZ2File(filename, 'w')
-    pickle.dump(one_hot,outfile)
-    outfile.close()
-
 def main():
     # Parseo de argumentos
     parser = argparse.ArgumentParser()
     parser.add_argument("-a","--archivos", type=str, nargs='+',
                         help="lista de rutas de los archivos")
     parser.add_argument("-f","--fichero", type=str,
-                        help="ruta del fichero con la lista de archivos separados por salto de linea")
-    parser.add_argument("-m","--multiprocessing", help="ejecuta el programa en múltiples procesadores",
-                        action="store_true")   
+                        help="ruta del fichero con la lista de archivos separados por salto de linea")  
     parser.add_argument("-v","--verbose", help="imprime por pantalla como va funcionando el programa",
                         action="store_true")   
                    
@@ -242,55 +236,22 @@ def main():
     # Cargamos los datos
     data = []
     if args.archivos:
-        for item in args.archivos:
-            data.append(to_pandas(item))
+        data = args.archivos
 
     if args.fichero:
         paths = open(args.fichero,'r')
         for item in paths.readlines():
-            data.append(to_pandas(item.strip('\n')))
+            data.append(item.strip('\n'))
         paths.close()
-    if args.verbose:
-        print('Datos leidos')
-
+        
     # Obtenemos las ips y puertos
+
     max_ips, max_ports = get_ips_ports(data)
     if args.verbose:
         print('Ips y Puertos seleccionados')
-
-    # Si activamos el multiprocesamiento lo ejecutamos de esa forma
-    if args.multiprocessing:
-        processes = []
-        for item in data:
-            p = multiprocessing.Process(target=multiprocessing_func, args=(item,max_ips,max_ports,'./Pickle'))
-            processes.append(p)
-            p.start()
-        
-        for process in processes:
-            process.join()
-        
-        print('One hot y pickle creado para todos los dataframes')
-        filename = './Pickle_max_ips.bz2'
-        outfile = bz2.BZ2File(filename, 'w')
-        pickle.dump(max_ips,outfile)
-        outfile.close()
-
-        filename = './Pickle_max_ports.bz2'
-        outfile = bz2.BZ2File(filename, 'w')
-        pickle.dump(max_ports,outfile)
-        outfile.close()
-
-        return
-
-    # Transformamos los datos en codificacion one hot
+    
+    # Transformamos los datos en codificacion one hot y los guardamos en pickle
     one_hot_list = to_one_hot_list(data,max_ips,max_ports,args.verbose)
-    if args.verbose:
-        print('One hot creado para todos los dataframes')
-
-    # Por ultimo lo pasamos a pickle y lo guardamos en la misma carpeta de la ejecucion
-    to_pickle(one_hot_list,max_ips,max_ports,'./Pickle')
-    if args.verbose:
-        print('Datos guardados en pickle')
     return
 
 if __name__ == "__main__":
