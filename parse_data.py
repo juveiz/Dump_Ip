@@ -200,7 +200,7 @@ Entrada: lista, path donde guardar los pickles
 """
 def to_pickle(lista,max_ips,max_ports,path):
     for i in range(len(lista)):
-        filename = path + str(i) + '.bz2'
+        filename = path + str(lista[i][0][-1]) + '.bz2'
         outfile = bz2.BZ2File(filename, 'w')
         pickle.dump(lista[i],outfile)
         outfile.close()
