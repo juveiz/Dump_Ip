@@ -116,13 +116,13 @@ def to_one_hot(dataframe, max_ips, max_ports):
     # y ponemos un uno en los mismos
     
     data = dataframe.values[:,1:]
-    for i in range(max_ips.shape[0] - 1):
+    for i in range(max_ips.shape[0]):
         fila, columna = np.where(data == max_ips[i])
         columna = columna*(max_ips.shape[0] + 1 + max_ports.shape[0] + 1) + i
         res[fila,columna] = 1
     
     data = dataframe.values[:,3:]
-    for i in range(max_ports.shape[0] - 1):
+    for i in range(max_ports.shape[0]):
         fila, columna = np.where(data == max_ports[i])
         columna = columna*(max_ips.shape[0] + 1 + max_ports.shape[0] + 1) + i + max_ips.shape[0] + 1
         res[fila,columna] = 1
@@ -160,17 +160,16 @@ Salida: lista de matrices de one hot
 
 """
 def to_one_hot_list(lista,max_ips,max_ports,verbose):
+    L = []
     for item in lista:
         temp = to_pandas(item)
         if verbose:
             print('Codificando: ' + temp.values[0,0])
         one_hot = to_one_hot(temp,max_ips,max_ports)
+        L.append(one_hot)
         if verbose:
             print('Codificado: ' + temp.values[0,0])
-        to_pickle([one_hot],max_ips,max_ports,'./Pickle')
-        if verbose:
-            print('Pickle creado: ' + temp.values[0,0])
-    return 
+    return L
 
 """
 Funcion to_one_hot_count
@@ -179,15 +178,18 @@ Transforma un one_hot del creado anteriormente y cuenta el numero de unos por ca
 
 Entrada: one hot, ips a utilizar 
 
-Salida: matriz de one hot
+Salida: one_hot_count
 
 """
-def to_one_hot_count(one_hot,max_ips):
-    one_hot_count = np.zeros(shape=(len(max_ips) + 1,len(max_ips) + 2),dtype=int)
-    counts = np.count_nonzero(one_hot == 1,axis=0)[:len(max_ips) + 1]
-    for i in range(len(max_ips) + 1):
-        one_hot_count[i,i] = 1
-        one_hot_count[i,-1] = counts[i]
+def to_one_hot_count(lista,max_ips,max_ports):
+    L = []
+    for item in lista:
+        old = item.sum(axis=0)[:-1]
+        new = np.zeros(shape=(old.shape[0]+1,),dtype=int)
+        new[:-1] = old 
+        new[-1] = item[0,-1]
+        L.append(new)
+    one_hot_count = np.array(L)
     return one_hot_count
 
 """
@@ -224,7 +226,9 @@ def main():
                         help="ruta del fichero con la lista de archivos separados por salto de linea")  
     parser.add_argument("-v","--verbose", help="imprime por pantalla como va funcionando el programa",
                         action="store_true")   
-                   
+    parser.add_argument("-c","--count", help="cuenta cuantos hay de cada fila en vez de generar todos los datos",
+                        action="store_true")  
+
     args = parser.parse_args()
     if args.archivos and args.fichero:
         print('Introduzca solo uno')
@@ -245,13 +249,22 @@ def main():
         paths.close()
         
     # Obtenemos las ips y puertos
-
+    if args.verbose:
+        print('Comienzo de seleccion de Ips y Puertos')
     max_ips, max_ports = get_ips_ports(data)
     if args.verbose:
         print('Ips y Puertos seleccionados')
     
     # Transformamos los datos en codificacion one hot y los guardamos en pickle
     one_hot_list = to_one_hot_list(data,max_ips,max_ports,args.verbose)
+
+    if args.count:
+        count = to_one_hot_count(one_hot_list,max_ips,max_ports)
+        if args.verbose:
+            print('Count generado')
+        to_pickle([count],max_ips,max_ports,'./Pickle')
+    else:
+        to_pickle(one_hot_list,max_ips,max_ports,'./Pickle')
     return
 
 if __name__ == "__main__":

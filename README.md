@@ -10,6 +10,8 @@ source bin/activate
 
 El programa transforma los archivos .dump en matrices de codificación one hot, además de seleccionar solo las ips que aparecen más.
 
+Si se quiere sacar sólo el número que hay de cada uno de las ips y puertos se puede añadir la flag -c para que devuelva sólo el conteo.
+
 Para realizar esto tenemos que ejecutar el programa. Tiene dos modos de ejecución principal:
 
 #### Método de archivos
